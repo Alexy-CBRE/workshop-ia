@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop IA — Quel groupe suis-je ?</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; }
+  .container { width: 100%; max-width: 640px; }
+  .header { text-align: center; margin-bottom: 32px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: #888; margin-bottom: 10px; }
+  h1 { font-size: 26px; font-weight: 700; color: #111; margin-bottom: 8px; }
+  .header p { font-size: 14px; color: #666; line-height: 1.6; }
+  .progress-bar { background: #e8e8e5; height: 4px; border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #111; border-radius: 2px; transition: width 0.4s ease; }
+  .progress-label { font-size: 11px; color: #aaa; text-align: right; margin-bottom: 24px; }
+  .section-title { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; flex: 1; height: 1px; background: #e8e8e5; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #e8e8e5; }
+  .question-card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 12px; border: 1px solid #e8e8e5; transition: border-color 0.2s; }
+  .question-card.answered { border-color: #111; }
+  .q-number { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #bbb; margin-bottom: 8px; }
+  .q-text { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 16px; line-height: 1.4; }
+  .name-input { width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid #e8e8e5; background: #fafaf8; font-size: 14px; color: #111; outline: none; transition: border-color 0.15s; font-family: inherit; }
+  .name-input:focus { border-color: #111; background: #fff; }
+  .name-input.filled { border-color: #111; background: #f0f0ee; }
+  .options { display: flex; flex-direction: column; gap: 7px; }
+  .option { display: flex; align-items: flex-start; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 1px solid #e8e8e5; cursor: pointer; transition: all 0.15s; background: #fafaf8; }
+  .option:hover { border-color: #ccc; background: #f5f5f3; }
+  .option.sel-niveau1 { border-color: #1D9E75; background: #E1F5EE; }
+  .option.sel-niveau2 { border-color: #378ADD; background: #E6F1FB; }
+  .option.sel-niveau3 { border-color: #BA7517; background: #FAEEDA; }
+  .option.sel-niveau4 { border-color: #534AB7; background: #EEEDFE; }
+  .option.sel-metier { border-color: #111; background: #f0f0ee; }
+  .opt-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .option.sel-niveau1 .opt-radio { border-color: #1D9E75; background: #1D9E75; }
+  .option.sel-niveau2 .opt-radio { border-color: #378ADD; background: #378ADD; }
+  .option.sel-niveau3 .opt-radio { border-color: #BA7517; background: #BA7517; }
+  .option.sel-niveau4 .opt-radio { border-color: #534AB7; background: #534AB7; }
+  .option.sel-metier .opt-radio { border-color: #111; background: #111; }
+  .opt-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: 0; transition: opacity 0.15s; }
+  .option.sel-niveau1 .opt-dot,
+  .option.sel-niveau2 .opt-dot,
+  .option.sel-niveau3 .opt-dot,
+  .option.sel-niveau4 .opt-dot,
+  .option.sel-metier .opt-dot { opacity: 1; }
+  .opt-label { font-size: 13.5px; color: #333; line-height: 1.5; }
+  .opt-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-bottom: 3px; }
+  .tag-n1 { background: #E1F5EE; color: #085041; }
+  .tag-n2 { background: #E6F1FB; color: #0C447C; }
+  .tag-n3 { background: #FAEEDA; color: #633806; }
+  .tag-n4 { background: #EEEDFE; color: #3C3489; }
+
+  /* RESULT */
+  .result-panel { display: none; background: #fff; border-radius: 20px; padding: 36px 28px; border: 1px solid #e8e8e5; text-align: center; margin-top: 12px; }
+  .result-panel.visible { display: block; }
+  .result-name { font-size: 15px; font-weight: 600; color: #666; margin-bottom: 16px; }
+  .group-number { font-size: 80px; font-weight: 800; color: #111; line-height: 1; margin-bottom: 4px; }
+  .group-label { font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 20px; }
+  .theme-box { background: #f5f5f3; border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: left; }
+  .theme-tag { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #aaa; margin-bottom: 6px; }
+  .theme-title { font-size: 15px; font-weight: 600; color: #111; line-height: 1.4; margin-bottom: 4px; }
+  .theme-sub { font-size: 13px; color: #666; }
+  .niveau-pill { display: inline-block; font-size: 12px; font-weight: 500; padding: 5px 14px; border-radius: 20px; margin-bottom: 20px; }
+  .saving-indicator { font-size: 12px; color: #aaa; margin: 12px 0; min-height: 18px; }
+  .saving-indicator.ok { color: #1D9E75; }
+  .saving-indicator.err { color: #e24b4a; }
+  .reset-btn { padding: 10px 28px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-size: 13px; color: #555; cursor: pointer; margin-top: 8px; }
+  .reset-btn:hover { background: #f5f5f3; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="eyebrow">Workshop IA · CBRE GWS</div>
+    <h1>Dans quel groupe suis-je ?</h1>
+    <p>Réponds aux questions ci-dessous.<br>Ton groupe sera assigné automatiquement.</p>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+  <div class="progress-label" id="progress-label">0 / 7 questions</div>
+  <div id="questions"></div>
+  <div class="result-panel" id="result">
+    <div class="result-name" id="res-name"></div>
+    <div class="group-number" id="res-group-num"></div>
+    <div class="group-label">Ton groupe</div>
+    <div class="niveau-pill" id="res-niveau"></div>
+    <div class="theme-box">
+      <div class="theme-tag">Thème du workshop</div>
+      <div class="theme-title" id="res-theme-title"></div>
+      <div class="theme-sub" id="res-theme-sub"></div>
+    </div>
+    <div class="saving-indicator" id="saving-status"></div>
+    <button class="reset-btn" onclick="resetQuiz()">↺ Participant suivant</button>
+  </div>
+</div>
+
+<script>
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcQfpZe84G74jikcoJ9nPpn-4vOBvKDXFyEHt-SiiwF0Rvb5HL_8zW5ToBz0VoM4vY/exec';
+
+var niveauQuestions = [
+  {
+    text: "Comment décririez-vous votre usage de l'IA aujourd'hui ?",
+    options: [
+      { level: 1, tag: 'Découverte', text: "Je n'ai jamais vraiment utilisé d'outil IA" },
+      { level: 2, tag: 'Utilisateur', text: "J'utilise ChatGPT ou Copilot occasionnellement" },
+      { level: 3, tag: 'Avancé', text: "J'utilise l'IA régulièrement dans mon travail" },
+      { level: 4, tag: 'Leader', text: "J'ai déjà déployé ou piloté un projet IA dans mon équipe" }
+    ]
+  },
+  {
+    text: "Quand vous entendez « prompt », vous pensez à quoi ?",
+    options: [
+      { level: 1, tag: 'Découverte', text: "Je ne sais pas vraiment ce que c'est" },
+      { level: 2, tag: 'Utilisateur', text: "C'est la question qu'on pose à l'IA — je l'utilise intuitivement" },
+      { level: 3, tag: 'Avancé', text: "J'applique une méthode pour structurer mes prompts" },
+      { level: 4, tag: 'Leader', text: "J'ai défini des templates de prompts pour mon équipe" }
+    ]
+  },
+  {
+    text: "L'IA dans votre organisation aujourd'hui, c'est :",
+    options: [
+      { level: 1, tag: 'Découverte', text: "Un sujet dont j'entends parler mais qui ne me concerne pas encore" },
+      { level: 2, tag: 'Utilisateur', text: "Un outil personnel que j'utilise à ma propre initiative" },
+      { level: 3, tag: 'Avancé', text: "Un levier que j'intègre dans des processus de mon équipe" },
+      { level: 4, tag: 'Leader', text: "Un sujet stratégique que je dois structurer et piloter" }
+    ]
+  },
+  {
+    text: "Ce que j'attends de ce workshop :",
+    options: [
+      { level: 1, tag: 'Découverte', text: "Comprendre ce qu'est vraiment l'IA et si elle me concerne" },
+      { level: 2, tag: 'Utilisateur', text: "Apprendre à mieux m'en servir au quotidien" },
+      { level: 3, tag: 'Avancé', text: "Identifier comment l'ancrer dans mes processus métier" },
+      { level: 4, tag: 'Leader', text: "Construire une vision et une roadmap pour mon périmètre" }
+    ]
+  }
+];
+
+var metierOptions = [
+  { id: 'support', label: 'Fonctions Support', sub: 'Procurement, Finance, RH...', groups: [2, 3] },
+  { id: 'pjm', label: 'PJM & Space Planning', sub: 'Gestion de projets, aménagement', groups: [4, 5] },
+  { id: 'tech', label: 'Équipe Technique, Opérationnel & QHSE', sub: 'Maintenance, Conformité, QHSE', groups: [6, 7] },
+  { id: 'client', label: 'Expérience Client', sub: 'Hospitalité, Relation client', groups: [8, 9] }
+];
+
+var groupCounters = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
+var answers = { prenom: '', nom: '', niveauChoices: [null, null, null, null], metier: null };
+var totalQ = 7; // 2 text + 4 niveau + 1 metier
+
+function totalAnswered() {
+  var c = 0;
+  if (answers.prenom.trim()) c++;
+  if (answers.nom.trim()) c++;
+  answers.niveauChoices.forEach(function(x) { if (x !== null) c++; });
+  if (answers.metier !== null) c++;
+  return c;
+}
+
+function updateProgress() {
+  var done = totalAnswered();
+  document.getElementById('progress').style.width = (done / totalQ * 100) + '%';
+  document.getElementById('progress-label').textContent = done + ' / ' + totalQ + ' questions';
+}
+
+function buildQuestions() {
+  var container = document.getElementById('questions');
+  container.innerHTML = '';
+  var qi = 0;
+
+  // Section Identité
+  addSectionTitle(container, 'Identité');
+  ['Quel est ton prénom ?', 'Quel est ton nom ?'].forEach(function(qtext, i) {
+    var field = i === 0 ? 'prenom' : 'nom';
+    var ph = i === 0 ? 'Ex : Marie' : 'Ex : Dupont';
+    var card = makeCard(qi, qtext);
+    card.innerHTML += '<input class="name-input" type="text" placeholder="' + ph + '" id="input-' + qi + '" autocomplete="off">';
+    container.appendChild(card);
+    (function(qiL, fieldL) {
+      setTimeout(function() {
+        var inp = document.getElementById('input-' + qiL);
+        if (inp) inp.addEventListener('input', function() { handleText(qiL, fieldL, this.value); });
+      }, 0);
+    })(qi, field);
+    qi++;
+  });
+
+  // Section Niveau IA
+  addSectionTitle(container, 'Ton niveau IA');
+  niveauQuestions.forEach(function(q, ni) {
+    var card = makeCard(qi, q.text);
+    var tagClass = { 1: 'tag-n1', 2: 'tag-n2', 3: 'tag-n3', 4: 'tag-n4' };
+    var selClass = { 1: 'sel-niveau1', 2: 'sel-niveau2', 3: 'sel-niveau3', 4: 'sel-niveau4' };
+    var optsDiv = document.createElement('div');
+    optsDiv.className = 'options';
+    q.options.forEach(function(o, oi) {
+      var opt = document.createElement('div');
+      opt.className = 'option';
+      opt.id = 'opt-' + qi + '-' + oi;
+      opt.innerHTML = '<div class="opt-radio"><div class="opt-dot"></div></div>' +
+        '<div class="opt-label"><span class="opt-tag ' + tagClass[o.level] + '">' + o.tag + '</span><br>' + o.text + '</div>';
+      (function(qiL, oiL, lvL, niL, scL) {
+        opt.addEventListener('click', function() {
+          answers.niveauChoices[niL] = lvL;
+          document.getElementById('qcard-' + qiL).querySelectorAll('.option').forEach(function(x) {
+            x.className = 'option';
+          });
+          this.classList.add(scL);
+          document.getElementById('qcard-' + qiL).classList.add('answered');
+          updateProgress();
+          checkComplete();
+        });
+      })(qi, oi, o.level, ni, selClass[o.level]);
+      optsDiv.appendChild(opt);
+    });
+    card.appendChild(optsDiv);
+    container.appendChild(card);
+    qi++;
+  });
+
+  // Section Métier
+  addSectionTitle(container, 'Ton domaine métier');
+  var metierCard = makeCard(qi, 'Dans quel domaine travaillez-vous principalement ?');
+  var mDiv = document.createElement('div');
+  mDiv.className = 'options';
+  metierOptions.forEach(function(m, mi) {
+    var opt = document.createElement('div');
+    opt.className = 'option';
+    opt.id = 'metier-' + mi;
+    opt.innerHTML = '<div class="opt-radio"><div class="opt-dot"></div></div>' +
+      '<div class="opt-label"><strong>' + m.label + '</strong><br><span style="font-size:12px;color:#888">' + m.sub + '</span></div>';
+    opt.addEventListener('click', function() {
+      answers.metier = m.id;
+      document.getElementById('qcard-' + qi).querySelectorAll('.option').forEach(function(x) { x.className = 'option'; });
+      this.classList.add('sel-metier');
+      document.getElementById('qcard-' + qi).classList.add('answered');
+      updateProgress();
+      checkComplete();
+    });
+    mDiv.appendChild(opt);
+  });
+  metierCard.appendChild(mDiv);
+  container.appendChild(metierCard);
+}
+
+function makeCard(qi, qtext) {
+  var card = document.createElement('div');
+  card.className = 'question-card';
+  card.id = 'qcard-' + qi;
+  card.innerHTML = '<div class="q-number">Question ' + (qi + 1) + ' / ' + totalQ + '</div><div class="q-text">' + qtext + '</div>';
+  return card;
+}
+
+function addSectionTitle(container, text) {
+  var div = document.createElement('div');
+  div.className = 'section-title';
+  div.textContent = text;
+  container.appendChild(div);
+}
+
+function handleText(qi, field, value) {
+  answers[field] = value;
+  var card = document.getElementById('qcard-' + qi);
+  var inp = document.getElementById('input-' + qi);
+  if (value.trim()) { card.classList.add('answered'); inp.classList.add('filled'); }
+  else { card.classList.remove('answered'); inp.classList.remove('filled'); }
+  updateProgress();
+  checkComplete();
+}
+
+function checkComplete() {
+  var allNiveau = answers.niveauChoices.every(function(c) { return c !== null; });
+  var allText = answers.prenom.trim() && answers.nom.trim();
+  var hasMetier = answers.metier !== null;
+  if (allNiveau && allText && hasMetier) setTimeout(showResult, 400);
+}
+
+function computeNiveau() {
+  var scores = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  answers.niveauChoices.forEach(function(a) { if (a) scores[a]++; });
+  return parseInt(Object.entries(scores).sort(function(a, b) { return b[1] - a[1]; })[0][0]);
+}
+
+function assignGroup(niveau, metier) {
+  // Niveau 1 ou 2 → Groupe 1 (Productivité individuelle)
+  if (niveau <= 2) return { num: 1, theme: 'Productivité individuelle', sub: 'Gagner du temps avec l\'IA au quotidien', niveauLabel: 'Découverte / Utilisateur', color: '#1D9E75', bg: '#E1F5EE' };
+  // Niveau 4 → Groupe 10 (Leader)
+  if (niveau === 4) return { num: 10, theme: 'Piloter une transformation IA', sub: 'Construire une vision et une roadmap IA pour son organisation', niveauLabel: 'Leader', color: '#534AB7', bg: '#EEEDFE' };
+  // Niveau 3 → selon le métier, groupes 2-9
+  var metierObj = metierOptions.find(function(m) { return m.id === metier; });
+  var groups = metierObj.groups;
+  // Alternate between the 2 groups
+  groupCounters[groups[0]]++;
+  var assigned = groupCounters[groups[0]] % 2 === 1 ? groups[0] : groups[1];
+  var themes = {
+    'support': { theme: 'Automatiser un processus métier', sub: 'Fonctions Support : Procurement, Finance, RH...', color: '#378ADD', bg: '#E6F1FB' },
+    'pjm': { theme: 'Automatiser un processus métier', sub: 'PJM & Space Planning', color: '#378ADD', bg: '#E6F1FB' },
+    'tech': { theme: 'Automatiser un processus métier', sub: 'Équipe Technique, Opérationnel & QHSE', color: '#378ADD', bg: '#E6F1FB' },
+    'client': { theme: 'Automatiser un processus métier', sub: 'Expérience Client / Hospitalité', color: '#378ADD', bg: '#E6F1FB' }
+  };
+  var t = themes[metier];
+  return { num: assigned, theme: t.theme, sub: t.sub, niveauLabel: 'Avancé', color: t.color, bg: t.bg };
+}
+
+function showResult() {
+  var niveau = computeNiveau();
+  var result = assignGroup(niveau, answers.metier);
+  var fullName = answers.prenom.trim() + ' ' + answers.nom.trim().toUpperCase();
+
+  document.getElementById('res-name').textContent = fullName;
+  document.getElementById('res-group-num').textContent = result.num;
+  document.getElementById('res-groupe-num-label');
+  document.getElementById('res-niveau').textContent = 'Niveau ' + result.niveauLabel;
+  document.getElementById('res-niveau').style.background = result.bg;
+  document.getElementById('res-niveau').style.color = result.color;
+  document.getElementById('res-theme-title').textContent = result.theme;
+  document.getElementById('res-theme-sub').textContent = result.sub;
+
+  document.getElementById('result').classList.add('visible');
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  saveToSheet(fullName, answers.prenom.trim(), answers.nom.trim(), result.niveauLabel, 'Groupe ' + result.num, result.theme, result.sub, answers.metier);
+}
+
+function saveToSheet(fullName, prenom, nom, niveau, groupe, theme, subtheme, metier) {
+  var status = document.getElementById('saving-status');
+  status.textContent = '⏳ Enregistrement en cours...';
+  status.className = 'saving-indicator';
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      timestamp: new Date().toLocaleString('fr-FR'),
+      prenom: prenom,
+      nom: nom,
+      niveau: niveau,
+      groupe: groupe,
+      theme: theme,
+      subtheme: subtheme,
+      metier: metier
+    })
+  })
+  .then(function() {
+    status.textContent = '✅ Enregistré !';
+    status.className = 'saving-indicator ok';
+  })
+  .catch(function() {
+    status.textContent = '❌ Erreur réseau — réponse non enregistrée.';
+    status.className = 'saving-indicator err';
+  });
+}
+
+function resetQuiz() {
+  answers = { prenom: '', nom: '', niveauChoices: [null, null, null, null], metier: null };
+  document.getElementById('result').classList.remove('visible');
+  document.getElementById('saving-status').textContent = '';
+  document.getElementById('progress').style.width = '0%';
+  document.getElementById('progress-label').textContent = '0 / ' + totalQ + ' questions';
+  buildQuestions();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+buildQuestions();
+</script>
+</body>
+</html>
